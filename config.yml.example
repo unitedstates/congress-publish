@@ -1,0 +1,7 @@
+# updates github repository with individual bill data
+github:
+  username: GITHUB_USER
+  password: GITHUB_PASS
+
+# root data directory of congress information
+data: /path/to/congress/data

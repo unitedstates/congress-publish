@@ -1,0 +1,107 @@
+#!/usr/bin/env python
+
+import sys, os, glob, errno, subprocess
+import shutil
+import yaml
+import zipfile, zlib, StringIO
+import requests
+import git
+
+def main():
+    options = get_options()
+
+    congresses = options.get('congresses', None)
+    if not congresses:
+        print "Provide a --congresses option."
+        return
+
+    for congress in congresses.split(","):
+        update_congress(congress.strip())
+
+    exit(0)
+
+def update_congress(congress):
+    config = yaml.safe_load(open("config.yml", 'r'))
+    repo_dir = os.path.join(config['repo'], 'api') # absolute path
+  
+    # remove repo_dir & replace
+    if os.path.isdir(repo_dir):
+        shutil.rmtree(repo_dir)
+    mkdir_p(repo_dir)
+
+    zipfile_name = "%s.zip" % congress
+    zipfile_path = "http://unitedstates.sunlightfoundation.com/congress/data/%s" % zipfile_name
+  
+    f = requests.get(zipfile_path)
+    if f.ok:
+  
+        github_repo = "git@github.com:unitedstates/congress-%s.git" % congress
+        # switch working directory to input data dir for relative globs
+        os.chdir(repo_dir)
+
+        # unzip file & extract
+        z = zipfile.ZipFile(StringIO.StringIO(f.content))
+        z.extractall(repo_dir)
+
+        # initialize repo
+        g = git.cmd.Git(repo_dir)
+        g.init()
+
+        # add files, commit, switch to branch and push to remote
+        g.add('.')
+        g.commit(m='updating files')
+        try:
+        	g.branch('gh-pages')
+        except:
+        	pass
+        g.checkout('gh-pages')
+        g.remote("add", 'origin', github_repo)
+        g.push('origin', 'gh-pages')
+
+        print "%s bill & amendment data pushed to Github" % ordinal(congress)
+    
+    else:
+        print "Zip file not downloaded!"
+
+def get_options():
+    options = {}
+    for arg in sys.argv[1:]:
+    if arg.startswith("--"):
+        if "=" in arg:
+            key, value = arg.split('=')
+        else:
+            key, value = arg, True
+            key = key.split("--")[1]
+        options[key.lower()] = value
+    return options
+
+# mkdir -p in python, from:
+# http://stackoverflow.com/questions/600268/mkdir-p-functionality-in-python
+def mkdir_p(path):
+    try:
+        os.makedirs(path)
+    except OSError as exc: # Python >2.5
+    if exc.errno == errno.EEXIST:
+        pass
+    else:
+        raise
+
+# adapted from http://code.activestate.com/recipes/576888-format-a-number-as-an-ordinal/
+def ordinal(value):
+    value = int(value)
+    if value % 100//10 != 1:
+        if value % 10 == 1:
+            ordval = u"%d%s" % (value, "st")
+    elif value % 10 == 2:
+        ordval = u"%d%s" % (value, "nd")
+    elif value % 10 == 3:
+        ordval = u"%d%s" % (value, "rd")
+    else:
+        ordval = u"%d%s" % (value, "th")
+    else:
+        ordval = u"%d%s" % (value, "th")
+
+    return ordval
+
+if __name__ == '__main__':
+    main()
