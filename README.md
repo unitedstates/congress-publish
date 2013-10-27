@@ -1,4 +1,4 @@
-## Congress API Updater
+## Congress Publisher
 
 A script to pull data from unitedstates Congress wiki and update a repository with the individual json files contained within.
 
