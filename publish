@@ -35,7 +35,7 @@ def update_congress(congress):
     f = requests.get(zipfile_path)
     if f.ok:
   
-        github_repo = "git@github.com:unitedstates/congress.git"
+        github_repo = "git@github.com:unitedstates/congress-data.git"
         # switch working directory to input data dir for relative globs
         os.chdir(repo_dir)
 
