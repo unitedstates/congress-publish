@@ -22,7 +22,7 @@ def main():
 
 def update_congress(congress):
     config = yaml.safe_load(open("config.yml", 'r'))
-    repo_dir = os.path.join(config['repo'], 'api') # absolute path
+    repo_dir = os.path.join(config['repo'], str(congress)) # absolute path
   
     # remove repo_dir & replace
     if os.path.isdir(repo_dir):
@@ -35,7 +35,7 @@ def update_congress(congress):
     f = requests.get(zipfile_path)
     if f.ok:
   
-        github_repo = "git@github.com:unitedstates/congress-%s.git" % congress
+        github_repo = "git@github.com:unitedstates/congress.git"
         # switch working directory to input data dir for relative globs
         os.chdir(repo_dir)
 
@@ -44,18 +44,21 @@ def update_congress(congress):
         z.extractall(repo_dir)
 
         # initialize repo
-        g = git.cmd.Git(repo_dir)
+        g = git.cmd.Git(config['repo'])
         g.init()
 
         # add files, commit, switch to branch and push to remote
-        g.add('.')
-        g.commit(m='updating files')
+        g.add('%s' % str(congress))
+        g.commit(message="updating files for congress %s" % str(congress))
         try:
         	g.branch('gh-pages')
         except:
         	pass
         g.checkout('gh-pages')
-        g.remote("add", 'origin', github_repo)
+        try:
+            g.remote("add", 'origin', github_repo)
+        except:
+            pass
         g.push('origin', 'gh-pages')
 
         print "%s bill & amendment data pushed to Github" % ordinal(congress)
@@ -66,13 +69,13 @@ def update_congress(congress):
 def get_options():
     options = {}
     for arg in sys.argv[1:]:
-    if arg.startswith("--"):
-        if "=" in arg:
-            key, value = arg.split('=')
-        else:
-            key, value = arg, True
+        if arg.startswith("--"):
+            if "=" in arg:
+                key, value = arg.split('=')
+            else:
+                key, value = arg, True
             key = key.split("--")[1]
-        options[key.lower()] = value
+            options[key.lower()] = value
     return options
 
 # mkdir -p in python, from:
@@ -81,10 +84,10 @@ def mkdir_p(path):
     try:
         os.makedirs(path)
     except OSError as exc: # Python >2.5
-    if exc.errno == errno.EEXIST:
-        pass
-    else:
-        raise
+        if exc.errno == errno.EEXIST:
+            pass
+        else:
+            raise
 
 # adapted from http://code.activestate.com/recipes/576888-format-a-number-as-an-ordinal/
 def ordinal(value):
@@ -96,8 +99,6 @@ def ordinal(value):
         ordval = u"%d%s" % (value, "nd")
     elif value % 10 == 3:
         ordval = u"%d%s" % (value, "rd")
-    else:
-        ordval = u"%d%s" % (value, "th")
     else:
         ordval = u"%d%s" % (value, "th")
 
