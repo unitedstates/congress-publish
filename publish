@@ -61,7 +61,7 @@ def update_congress(congress):
             pass
         g.push('origin', 'gh-pages')
 
-        print "%s bill & amendment data pushed to Github" % ordinal(congress)
+        print "%s bill & amendment data pushed to Github" % str(congress)
     
     else:
         print "Zip file not downloaded!"
@@ -101,7 +101,6 @@ def ordinal(value):
         ordval = u"%d%s" % (value, "rd")
     else:
         ordval = u"%d%s" % (value, "th")
-
     return ordval
 
 if __name__ == '__main__':
